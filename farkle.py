@@ -23,7 +23,6 @@ def scoreDice(dice):
         return {}  # no score if no 1s, 5s, or 3+ multiples
 
     # look for runs, either 1,2,3,4,5, 2,3,4,5,6, or 1,2,3,4,5,6
-    runs_score = 0
     if values[0] > 0 and values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0:
         scores[sidx] = [750, [1, 2, 3, 4, 5]]
         sidx += 1
@@ -56,24 +55,12 @@ def scoreDice(dice):
             if val == 6:
                 scores[sidx] = [8000, [d, d, d, d, d, d]]
                 sidx += 1
-        elif d == 5:
+        elif d == 5 and val < 3:
             if val >= 1:
                 scores[sidx] = [50, [d]]
                 sidx += 1
             if val >= 2:
                 scores[sidx] = [100, [d, d]]
-                sidx += 1
-            if val >= 3:
-                scores[sidx] = [d*100, [d, d, d]]
-                sidx += 1
-            if val >= 4:
-                scores[sidx] = [d*200, [d, d, d, d]]
-                sidx += 1
-            if val >= 5:
-                scores[sidx] = [d*400, [d, d, d, d, d]]
-                sidx += 1
-            if val == 6:
-                scores[sidx] = [d*800, [d, d, d, d, d, d]]
                 sidx += 1
         else:
             if val >= 3:
