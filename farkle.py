@@ -156,16 +156,31 @@ def playTurn():
 def main():
     print('Farkle!')
 
-    orig_num_dice = 6
-    dice = []
-    for d in range(orig_num_dice):
-        dice.append(0)
+    score_threshold = int(input('Enter score to play to: '))
 
-    total_score = 0
+    player_1_score = 0
+    player_2_score = 0
+
+    player_1s_turn = bool(random.getrandbits(1))
 
     while True:
-        total_score += playTurn()
-        print(f'PLAYER SCORE = {total_score}')
+        if player_1s_turn:
+            print('Player 1\'s Turn')
+            player_1_score += playTurn()
+            print(f'PLAYER SCORE = {player_1_score}')
+            if player_1_score >= score_threshold:
+                print('Player 1 WINS')
+                return
+        else:
+            print('Player 2\'s Turn')
+            player_2_score += playTurn()
+            print(f'PLAYER SCORE = {player_2_score}')
+            if player_2_score >= score_threshold:
+                print('Player 2 WINS')
+                return
+
+        player_1s_turn = not player_1s_turn
+
 
 if __name__ == '__main__':
     main()
