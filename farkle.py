@@ -2,6 +2,7 @@ import random
 
 
 def scoreDice(dice):
+    #                1  2  3  4   5  6
     dice_values = [100, 0, 0, 0, 50, 0]  # scores for individual dice
     # dice is a List of up to 6 ints
     num_dice = len(dice)
@@ -21,8 +22,6 @@ def scoreDice(dice):
 
     # look for runs, either 1,2,3,4,5, 2,3,4,5,6, or 1,2,3,4,5,6
     runs_score = 0
-    first_five = False
-    last_five = False
     if values[0] > 0 and values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0:
         runs_score = 750
     if values[5] > 0 and values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0:
@@ -40,11 +39,11 @@ def scoreDice(dice):
                 scores[i] = (i+1) * 100
 
         if val == 4:
-            scores[i] = scores[i] * 2
+            scores[i] *= 2
         elif val == 5:
-            scores[i] = scores[i] * 4
+            scores[i] *= 4
         elif val == 6:
-            scores[i] = scores[i] * 8
+            scores[i] *= 8
 
     return sum(scores) + runs_score
 
