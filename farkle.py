@@ -92,6 +92,16 @@ def scoreDice(dice):
     return scores
 
 
+def scorePrint(scores):
+    # function to nicely print the dictionary of scores returned by scoreDice
+    s = 'Choice\tScore\tDice Used\n'
+    for x in scores:
+        points = scores[x][0]
+        dice = scores[x][1]
+        s += f'{x}\t\t{points}\t\t{dice}\n'
+    print(s)
+
+
 def playTurn():
     # This function plays one turn of Farkle. It sets up 6 dice, rolls them, and lets the player pick which dice to
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
@@ -122,7 +132,7 @@ def playTurn():
         took_points = False
 
         while turn_not_over:
-            print(dice)
+            print(f'Dice remaining:\n{dice}')
 
             scores = scoreDice(dice)
 
@@ -134,7 +144,7 @@ def playTurn():
                     turn_not_over = False
 
             else:
-                print(scores)  # TODO: format this printout to look better
+                scorePrint(scores)
 
                 choice = input('Select one score to take (press x to take none): ')
 
@@ -158,6 +168,14 @@ def main():
 
     score_threshold = int(input('Enter score to play to: '))
 
+    p1name = input('Enter name for PLAYER 1: ')
+    p2name = input('Enter name for PLAYER 2: ')
+
+    if p1name == '':
+        p1name = 'Player 1'
+    if p2name == '':
+        p2name = 'Player 2'
+
     player_1_score = 0
     player_2_score = 0
 
@@ -165,18 +183,18 @@ def main():
 
     while True:
         if player_1s_turn:
-            print('Player 1\'s Turn')
+            print(f'{p1name}\'s Turn')
             player_1_score += playTurn()
-            print(f'PLAYER SCORE = {player_1_score}')
+            print(f'{p1name} SCORE = {player_1_score}')
             if player_1_score >= score_threshold:
-                print('Player 1 WINS')
+                print(f'{p1name} WINS')
                 return
         else:
-            print('Player 2\'s Turn')
+            print(f'{p2name}\'s Turn')
             player_2_score += playTurn()
-            print(f'PLAYER SCORE = {player_2_score}')
+            print(f'{p2name} SCORE = {player_2_score}')
             if player_2_score >= score_threshold:
-                print('Player 2 WINS')
+                print(f'{p2name} WINS')
                 return
 
         player_1s_turn = not player_1s_turn
