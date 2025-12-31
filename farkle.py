@@ -2,6 +2,11 @@ import random
 import time
 
 
+def addScore(score_dict, points, dice):
+    score_dict[len(score_dict)] = [points, dice]
+    return score_dict
+
+
 def scoreDice(dice):
     #  this function will take an arbitrary list of Dice values and return a Dictionary of possible scores
     #  dict will take the form of 'scores[idx] = [points, [list_of_dice]]'
@@ -10,78 +15,75 @@ def scoreDice(dice):
     num_dice = len(dice)
     values = [0, 0, 0, 0, 0, 0]  # number of ones, twos, threes, etc
     scores = {}  # will store list of scores & their associated die
-    sidx = 0  # index for scores
+
+    # count the number of 1s, 2s, 3s, etc
     for d in range(num_dice):
         val = dice[d] - 1  # since val is an index, and indices start at 0
         values[val] += 1
     # print(values)
-    no_mults = True
 
+    no_multiples = True  # check for multiples of three or more
     if max(values) >= 3:
-        no_mults = False
+        no_multiples = False
 
-    if values[0] == 0 and values[4] == 0 and no_mults is True:
-        return {}  # no score if no 1s, 5s, or 3+ multiples
+    # no score if no 1s, 5s, or 3+ multiples
+    if values[0] == 0 and values[4] == 0 and no_multiples is True:
+        return {}
 
-    # look for runs, either 1,2,3,4,5, 2,3,4,5,6, or 1,2,3,4,5,6
+    # Scoring for runs, either 1,2,3,4,5, 2,3,4,5,6, or 1,2,3,4,5,6
     if values[0] > 0 and values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0:
-        scores[sidx] = [750, [1, 2, 3, 4, 5]]
-        sidx += 1
-    if values[5] > 0 and values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0:
-        scores[sidx] = [750, [2, 3, 4, 5, 6]]
-        sidx += 1
+        addScore(scores, 750, [1, 2, 3, 4, 5])
+    if values[1] > 0 and values[2] > 0 and values[3] > 0 and values[4] > 0 and values[5] > 0:
+        addScore(scores, 750, [2, 3, 4, 5, 6])
     if len(scores) == 2:  # IE if both runs are present
-        scores[sidx] = [1500, [1, 2, 3, 4, 5, 6]]
-        sidx += 1
+        addScore(scores, 1500, [1, 2, 3, 4, 5, 6])
 
     for i in range(6):
-        d = i + 1  # the number on the dice
-        val = values[i]
+        d = i + 1  # the number on the dice (add one since index starts at 0)
+        val = values[i]  # the number of dice with that value
+
+        # Scoring conditions if '1's are rolled
         if d == 1:
             if val >= 1:
-                scores[sidx] = [100, [d]]
-                sidx += 1
+                addScore(scores, 100, [d])
             if val >= 2:
-                scores[sidx] = [200, [d, d]]
-                sidx += 1
+                addScore(scores, 200, [d, d])
             if val >= 3:
-                scores[sidx] = [1000, [d, d, d]]
-                sidx += 1
+                addScore(scores, 1000, [d, d, d])
             if val >= 4:
-                scores[sidx] = [2000, [d, d, d, d]]
-                sidx += 1
+                addScore(scores, 2000, [d, d, d, d])
             if val >= 5:
-                scores[sidx] = [4000, [d, d, d, d, d]]
-                sidx += 1
+                addScore(scores, 4000, [d, d, d, d, d])
             if val == 6:
-                scores[sidx] = [8000, [d, d, d, d, d, d]]
-                sidx += 1
+                addScore(scores, 8000, [d, d, d, d, d, d])
+
+        # Scoring conditions if one or two '5's are rolled
         elif d == 5 and val < 3:
             if val >= 1:
-                scores[sidx] = [50, [d]]
-                sidx += 1
+                addScore(scores, 50, [d])
             if val >= 2:
-                scores[sidx] = [100, [d, d]]
-                sidx += 1
+                addScore(scores, 100, [d, d])
+
+        # Scoring conditions for all other combos
         else:
             if val >= 3:
-                scores[sidx] = [d*100, [d, d, d]]
-                sidx += 1
+                addScore(scores, d*100, [d, d, d])
             if val >= 4:
-                scores[sidx] = [d*200, [d, d, d, d]]
-                sidx += 1
+                addScore(scores, d*200, [d, d, d, d])
             if val >= 5:
-                scores[sidx] = [d*400, [d, d, d, d, d]]
-                sidx += 1
+                addScore(scores, d*400, [d, d, d, d, d])
             if val == 6:
-                scores[sidx] = [d*800, [d, d, d, d, d, d]]
-                sidx += 1
+                addScore(scores, d*800, [d, d, d, d, d, d])
 
     return scores
 
 
 def printScore(scores):
     # function to nicely print the dictionary of scores returned by scoreDice
+    # Choice    Score   Dice Used
+    # 0         100     [1]
+    # 1         200     [1, 1]
+    # 2         50      [5]
     s = 'Choice\tScore\tDice Used\n'
     for x in scores:
         points = scores[x][0]
@@ -100,36 +102,44 @@ def playTurn(ptype, sleep_time=3):
     # p_type is a string representing the type of Player.
     # Will support either 'man', 'dumbAss', 'allIn', or 'playItSafe'
 
-    dice = [0 for d in range(6)]  # initialize the dice List
+    dice = [0 for d in range(6)]  # create 6 dice
     round_score = 0
     did_bust = False
     first_roll = True
 
     while True:
-        s = ''
-        if first_roll:
+        s = ''  # string for catching the user or computer input for their turn
+
+        if first_roll:  # show a different input string if it's the first roll
             if ptype == 'man':
                 s = input('Press ENTER to roll die: ')
             first_roll = False
         else:
+            # User picks what to do
             if ptype == 'man':
                 s = input('Press ENTER to roll die, or \'x\' to end turn: ')
+
+            # dumbAss always quits once he has any points
             if ptype == 'dumbAss':
                 print(f'{ptype} is ending his turn...')
-                s = 'x'  # dumbAss always quits once he has any points
+                s = 'x'
                 time.sleep(sleep_time)
 
+        # User chose to end the round
         if s == 'x':
             return round_score
 
+        # User got NO points on their last roll & busted
         if did_bust:
             return 0
+
         else:
             if len(dice) == 0:  # covers case where all dice are used for score, and player gets to roll again
-                num_dice = 6
+                num_dice = 6  # reset to using 6 dice
             else:
                 num_dice = len(dice)  # only roll remaining dice
 
+        # roll the dice & sort ascending (not needed but looks nice)
         dice = [random.randrange(1, 7) for d in range(num_dice)]
         dice.sort()
 
@@ -137,35 +147,50 @@ def playTurn(ptype, sleep_time=3):
         took_points = False
 
         while not turn_is_over:
+            # Show the dice rolled
             print(f'Dice remaining:\n{dice}')
 
+            # Get the list of scoring dice
             scores = scoreDice(dice)
 
+            # Determine if there's a BUST!
             if len(scores) == 0:
                 if took_points is False:
                     print('BUST!')
                     return 0
-                else:
+                else:  # have already taken points from this roll, and there's no more scores to take
                     turn_is_over = True
 
+            # Otherwise points are able to be taken
             else:
-                printScore(scores)
+                printScore(scores)  # print the available scores in a nice format
 
+                choice = 0  # choice of dice combo to take, or to skip turn
+
+                # case where there's only one option right off the roll, so user HAS to take it
                 if took_points is False and len(scores) == 1:
-                    choice = 0
                     if ptype == 'man':
                         input('Selecting \'0\' since it\'s the only score (ENTER to continue) ')
-                    else:
+                    else:  # computer doesn't have to enter input
                         print('Selecting \'0\' since it\'s the only score')
                         time.sleep(sleep_time)
+
+                # case where there are multiple options for points
                 else:
+                    # Human player gets to pick what option to take
                     if ptype == 'man':
                         choice = input('Select one score to take, or press \'x\' to pass: ')
+
+                    # dumbAss will take the highest available score ONCE, then cede their turn
                     elif ptype == 'dumbAss':
                         if took_points is False:
-                            point_vals = [scores[s][0] for s in scores]
+                            # find out which score is highest
+                            point_vals = [scores[s][0] for s in scores]  # get list of points from the score dict
                             highest_point_val = max(point_vals)
                             choice = 0
+
+                            # probably not the most elegant way to do this...
+                            # find the score[] index that matches the highest point val
                             for s in scores:
                                 if highest_point_val in scores[s]:
                                     choice = s
@@ -178,15 +203,19 @@ def playTurn(ptype, sleep_time=3):
                 if choice == 'x':
                     turn_is_over = True
 
+                # Player has picked a scoring option
                 else:
                     took_points = True
                     score = scores[int(choice)]  # get the score info from the choice selected
                     # score = [number_of_points, [die_1, die_2, ..., die_N]]
-                    points = score[0]  # the number of points
-                    die = score[1]  # the dice used to make those points
-                    for d in die:
-                        dice.remove(d)  # take the scoring dice out of play for now
+                    points = score[0]  # the number of points for that score
+                    die = score[1]  # the dice used to make those points\
 
+                    # take the scoring dice out of play
+                    for d in die:
+                        dice.remove(d)
+
+                    # Add the scoring points to the running round total
                     round_score += points
                     print(f'Score = {round_score}')
 
