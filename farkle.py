@@ -2,7 +2,7 @@ import random
 import time
 import statistics
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 def stringIsANumber(s):
@@ -11,6 +11,12 @@ def stringIsANumber(s):
         return True
     except ValueError:
         return False
+class Color:
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    BLUE = "\033[34m"
+    YELLOW = "\033[33m"
+    RESET = "\033[0m"    
 
 
 def addScore(score_dict, points, dice):
@@ -240,7 +246,7 @@ def playTurn(ptype, sleep_time=3, show_print=True):
             if len(scores) == 0:
                 if not took_points:
                     if show_print:
-                        print('\nBUST!\n')
+                        print(f'{Color.RED}\nBUST!\n{Color.RESET}')
                     return 0
                 else:  # have already taken points from this roll, and there's no more scores to take
                     turn_is_over = True
@@ -315,19 +321,19 @@ def playGame(p1, p2, score_to_win):
     if show_print:
         while True:
             if player_1s_turn:
-                print(f'{p1.name}\'s Turn')
+                print(f'{Color.GREEN}{p1.name}\'s Turn{Color.RESET}')
                 p1.points += playTurn(p1.type, turn_delay, show_print)
-                print(f'{p1.name} SCORE = {p1.points}')
-                print(f'{p2.name} SCORE = {p2.points}')
+                print(f'{Color.GREEN}{p1.name} SCORE = {p1.points}{Color.RESET}')
+                print(f'{Color.BLUE}{p2.name} SCORE = {p2.points}{Color.RESET}')
                 if p1.points >= score_to_win:
                     print(f'{p1.name} WINS')
                     p1.victories += 1
                     return p1.name
             else:
-                print(f'{p2.name}\'s Turn')
+                print(f'{Color.BLUE}{p2.name}\'s Turn{Color.RESET}')
                 p2.points += playTurn(p2.type, turn_delay, show_print)
-                print(f'{p2.name} SCORE = {p2.points}')
-                print(f'{p1.name} SCORE = {p1.points}')
+                print(f'{Color.BLUE}{p2.name} SCORE = {p2.points}{Color.RESET}')
+                print(f'{Color.GREEN}{p1.name} SCORE = {p1.points}{Color.RESET}')
                 if p2.points >= score_to_win:
                     print(f'{p2.name} WINS')
                     p2.victories += 1
