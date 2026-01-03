@@ -95,6 +95,29 @@ def printScore(scores):
     print(s)
 
 
+def endTurnOrRoll(ptype, first_roll):
+    # Will return an empty string to indicate ROLL, or 'x' to indicate END TURN
+    # Human players will simply use an input()
+    # Computer players will have more rules
+    #   ptype       - player type (human or otherwise)
+    #   first_roll  - bool of whether it's the very first roll in a turn or not
+
+    if ptype == 'man':
+        if first_roll:
+            return input('Press ENTER to roll die: ')
+        else:
+            # Player can choose to end their turn after they roll
+            return input('Press ENTER to roll die, or \'x\' to end turn: ')
+
+    elif ptype =='dumbAss':
+        # dumbAss always quits after the first roll...
+        if not first_roll:
+            return 'x'
+        else:
+            return ''
+    return '???'  # deliberately weird string to catch missed cases
+
+
 def playTurn(ptype, sleep_time=3):
     # This function plays one turn of Farkle. It sets up 6 dice, rolls them, and lets the player pick which dice to
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
@@ -108,28 +131,21 @@ def playTurn(ptype, sleep_time=3):
     first_roll = True
 
     while True:
-        s = ''  # string for catching the user or computer input for their turn
+        # Check if the player wants to end their turn or roll the die
+        end_turn = endTurnOrRoll(ptype, first_roll) == 'x'
 
-        if first_roll:  # show a different input string if it's the first roll
-            if ptype == 'man':
-                s = input('Press ENTER to roll die: ')
+        if first_roll:
             first_roll = False
-        else:
-            # User picks what to do
-            if ptype == 'man':
-                s = input('Press ENTER to roll die, or \'x\' to end turn: ')
 
-            # dumbAss always quits once he has any points
-            if ptype == 'dumbAss':
-                print(f'{ptype} is ending his turn...')
-                s = 'x'
-                time.sleep(sleep_time)
+        if not ptype == 'man' and end_turn:
+            print(f'{ptype} is ending their turn...')
+            time.sleep(sleep_time)
 
         # User chose to end the round
-        if s == 'x':
+        if end_turn:
             return round_score
 
-        # User got NO points on their last roll & busted
+        # User got NO points on their roll & busted
         if did_bust:
             return 0
 
