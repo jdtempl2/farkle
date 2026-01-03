@@ -118,6 +118,31 @@ def endTurnOrRoll(ptype, first_roll):
     return '???'  # deliberately weird string to catch missed cases
 
 
+def chooseScoreToTake(ptype, scores, dice, took_points):
+
+    # Human player gets to pick what option to take
+    if ptype == 'man':
+        return input('Select one score to take, or press \'x\' to pass: ')
+
+    # dumbAss will take the highest available score ONCE, then cede their turn
+    elif ptype == 'dumbAss':
+        if took_points is False:
+            # find out which score is highest
+            point_vals = [scores[s][0] for s in scores]  # get list of points from the score dict
+            highest_point_val = max(point_vals)
+            choice = 0
+
+            # probably not the most elegant way to do this...
+            # find the score[] index that matches the highest point val
+            for s in scores:
+                if highest_point_val in scores[s]:
+                    choice = s
+            return choice
+        else:
+            return 'x'
+    return 0
+
+
 def playTurn(ptype, sleep_time=3):
     # This function plays one turn of Farkle. It sets up 6 dice, rolls them, and lets the player pick which dice to
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
@@ -181,40 +206,22 @@ def playTurn(ptype, sleep_time=3):
             else:
                 printScore(scores)  # print the available scores in a nice format
 
-                choice = 0  # choice of dice combo to take, or to skip turn
-
                 # case where there's only one option right off the roll, so user HAS to take it
                 if took_points is False and len(scores) == 1:
                     if ptype == 'man':
                         input('Selecting \'0\' since it\'s the only score (ENTER to continue) ')
-                    else:  # computer doesn't have to enter input
-                        print('Selecting \'0\' since it\'s the only score')
-                        time.sleep(sleep_time)
-
-                # case where there are multiple options for points
+                    choice = 0
                 else:
-                    # Human player gets to pick what option to take
-                    if ptype == 'man':
-                        choice = input('Select one score to take, or press \'x\' to pass: ')
+                    # case where there are multiple options for points
+                    choice = chooseScoreToTake(ptype, scores, dice, took_points)
 
-                    # dumbAss will take the highest available score ONCE, then cede their turn
-                    elif ptype == 'dumbAss':
-                        if took_points is False:
-                            # find out which score is highest
-                            point_vals = [scores[s][0] for s in scores]  # get list of points from the score dict
-                            highest_point_val = max(point_vals)
-                            choice = 0
-
-                            # probably not the most elegant way to do this...
-                            # find the score[] index that matches the highest point val
-                            for s in scores:
-                                if highest_point_val in scores[s]:
-                                    choice = s
-                            print(f'{ptype} is selecting {choice} for {highest_point_val} points')
-                        else:
-                            print(f'{ptype} is taking no more points...')
-                            choice = 'x'
-                        time.sleep(sleep_time)
+                # Report what action the computer took, if needed
+                if not ptype == 'man':
+                    if choice == 'x':
+                        print(f'{ptype} is taking no more points...')
+                    else:
+                        print(f'{ptype} is selecting {choice} for {scores[choice][0]} points')
+                    time.sleep(sleep_time)
 
                 if choice == 'x':
                     turn_is_over = True
