@@ -2,6 +2,8 @@ import random
 import time
 import statistics
 
+__version__ = "0.1.0"
+
 
 def stringIsANumber(s):
     try:
@@ -238,7 +240,7 @@ def playTurn(ptype, sleep_time=3, show_print=True):
             if len(scores) == 0:
                 if not took_points:
                     if show_print:
-                        print('BUST!')
+                        print('\nBUST!\n')
                     return 0
                 else:  # have already taken points from this roll, and there's no more scores to take
                     turn_is_over = True
