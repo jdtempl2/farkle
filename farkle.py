@@ -95,7 +95,7 @@ def printScore(scores):
     print(s)
 
 
-def endTurnOrRoll(ptype, first_roll):
+def endTurnOrRoll(ptype, first_roll, round_score):
     # Will return an empty string to indicate ROLL, or 'x' to indicate END TURN
     # Human players will simply use an input()
     # Computer players will have more rules
@@ -115,10 +115,32 @@ def endTurnOrRoll(ptype, first_roll):
             return 'x'
         else:
             return ''
+
+    # highRolla will always roll until he either busts or has some high number of points (1000+)
+    elif ptype == 'highRolla':
+        points_to_get = 1000  # amount of points that highRolla wants in one round
+        if round_score >= points_to_get:
+            return 'x'
+        else:
+            return ''
+
     return '???'  # deliberately weird string to catch missed cases
 
 
-def chooseScoreToTake(ptype, scores, dice, took_points):
+def getHighestScoringOption(scores):
+    point_vals = [scores[s][0] for s in scores]  # get List of points from the score dict
+    highest_point_val = max(point_vals)
+    choice = 0  # initialize
+
+    # probably not the most elegant way to do this...
+    # find the score[] index that matches the highest point val
+    for s in scores:
+        if highest_point_val in scores[s]:
+            choice = s
+    return choice
+
+
+def chooseScoreToTake(ptype, scores, round_score, took_points):
 
     # Human player gets to pick what option to take
     if ptype == 'man':
@@ -127,19 +149,17 @@ def chooseScoreToTake(ptype, scores, dice, took_points):
     # dumbAss will take the highest available score ONCE, then cede their turn
     elif ptype == 'dumbAss':
         if took_points is False:
-            # find out which score is highest
-            point_vals = [scores[s][0] for s in scores]  # get list of points from the score dict
-            highest_point_val = max(point_vals)
-            choice = 0
-
-            # probably not the most elegant way to do this...
-            # find the score[] index that matches the highest point val
-            for s in scores:
-                if highest_point_val in scores[s]:
-                    choice = s
-            return choice
+            return getHighestScoringOption(scores)
         else:
             return 'x'
+
+    # highRolla will always roll until he either busts or has some high number of points (1000+)
+    elif ptype == 'highRolla':
+        if len(scores) > 0:
+            return getHighestScoringOption(scores)
+        else:
+            return 'x'
+
     return 0
 
 
@@ -148,7 +168,7 @@ def playTurn(ptype, sleep_time=3):
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
     # Function returns the points scored for this turn.
     # p_type is a string representing the type of Player.
-    # Will support either 'man', 'dumbAss', 'allIn', or 'playItSafe'
+    # Will support either 'man', 'dumbAss', 'highRolla', or 'playItSafe'
 
     dice = [0 for d in range(6)]  # create 6 dice
     round_score = 0
@@ -157,7 +177,7 @@ def playTurn(ptype, sleep_time=3):
 
     while True:
         # Check if the player wants to end their turn or roll the die
-        end_turn = endTurnOrRoll(ptype, first_roll) == 'x'
+        end_turn = endTurnOrRoll(ptype, first_roll, round_score) == 'x'
 
         if first_roll:
             first_roll = False
@@ -213,7 +233,7 @@ def playTurn(ptype, sleep_time=3):
                     choice = 0
                 else:
                     # case where there are multiple options for points
-                    choice = chooseScoreToTake(ptype, scores, dice, took_points)
+                    choice = chooseScoreToTake(ptype, scores, round_score, took_points)
 
                 # Report what action the computer took, if needed
                 if not ptype == 'man':
@@ -254,7 +274,7 @@ def main():
 
     print('COMPUTER PLAYERS ARE')
     print('1. dumbAss (easy)')
-    print('2. allIn (med)')
+    print('2. highRolla (med)')
     print('3. playItSafe (???)')
 
     print('\nEnter COMPUTER player name to play against \'AI\'')
@@ -264,11 +284,11 @@ def main():
     p2name = input('Enter name for PLAYER 2: ')
 
     if p1name == '':
-        p1name = 'Player 1'
+        p1name = 'highRolla'
     if p2name == '':
         p2name = 'dumbAss'
 
-    computer_names = ['dumbAss', 'allIn', 'playItSafe']
+    computer_names = ['dumbAss', 'highRolla', 'playItSafe']
 
     if p1name not in computer_names:
         p1type = 'man'
