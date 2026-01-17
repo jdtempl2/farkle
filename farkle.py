@@ -17,12 +17,6 @@ class Color:
 class Action(Enum):
     ROLL = 'r'
     ENDTURN = 'x'
-    S0 = 0
-    S1 = 1
-    S2 = 2
-    S3 = 3
-    S4 = 4
-    S5 = 5
 
 
 def stringIsAnAction(s):
@@ -117,21 +111,61 @@ def scoreDice(dice):
     return scores
 
 
+def isDiceSelectionValid(chosen_dice, original_dice):
+    # Returns True if selection is Valid
+    dice = [d for d in original_dice]  # save a local copy to not change the main List
+    for d in chosen_dice:
+        try:
+            dice.remove(d)
+        except ValueError:
+            return False
+    return True
+
+
+def getTotalScore(scoring_dice):
+    # Returns the total score from a set of Dice
+    dice = [d for d in scoring_dice]  # save local copy to not overwrite original List
+    points = 0
+    while len(dice) > 0:
+        scores = scoreDice(dice)
+        if len(scores) == 0:
+            return points
+        [points_to_add, scoring_dice] = max(scores.values())
+        points += points_to_add
+        for d in scoring_dice:
+            dice.remove(d)
+    return points
+
+
 def printScore(scores):
     # function to nicely print the dictionary of scores returned by scoreDice
     # Choice    Score   Dice Used
-    # 0         100     [1]
-    # 1         200     [1, 1]
-    # 2         50      [5]
+    # 1         100     [1]
+    # 11        200     [1, 1]
+    # 5         50      [5]
     s = 'Choice\tScore\tDice Used\n'
     for x in scores:
+        tabs1 = '\t\t'
+        tabs2 = '\t\t'
+
         points = scores[x][0]
         dice = scores[x][1]
+        choice = printDice(dice)
+        if len(choice) > 3:
+            tabs1 = '\t'
         if points > 999:
-            s += f'{x}\t\t{points}\t{dice}\n'
-        else:
-            s += f'{x}\t\t{points}\t\t{dice}\n'
+            tabs2 = '\t'
+        s += f'{choice}{tabs1}{points}{tabs2}{dice}\n'
     print(s)
+
+
+def printDice(dice):
+    # Prints a Dice array as a string of numbers
+    # [1,2,3,4,5,6] returns '123456'
+    dice_str = ''
+    for d in dice:
+        dice_str += str(d)
+    return dice_str
 
 
 def endTurnOrRoll(ptype, first_roll, round_score):
@@ -211,6 +245,51 @@ def chooseScoreToTake(ptype, scores, round_score, took_points):
     return Action.S0
 
 
+def takeAction(ptype, dice, scores, round_points, sleep_time, show_print=False):
+    # Player will decide what Action to take (Reroll or Quit)
+    # and also which Dice to take for scoring
+    # Returns a List [dice_taken, Action]
+
+    if ptype == 'man':
+
+        dice_to_take = []
+        action = Action.ENDTURN
+
+        # check for BUST
+        if len(scores) == 0:
+            input('BUST! Ending your turn...')
+            return [dice_to_take, Action.ENDTURN]
+
+        if len(scores) == 1:
+            dice_to_take = scores[0][1]
+            input(f'Choosing {printDice(dice_to_take)}, since it\'s the only scoring option')
+        else:
+            dice_to_take = [7]
+            while not isDiceSelectionValid(dice_to_take, dice):
+                dice_choice = input('Enter DICE to take for scoring: ')
+                dice_to_take = [int(d) for d in dice_choice]
+
+        dice_left = len(dice)-len(dice_to_take)
+        if dice_left == 1:
+            print(f'{dice_left} die remaining')
+        else:
+            print(f'{dice_left} dice remaining')
+
+        #points = round_points + getTotalScore(dice_to_take)
+        print(f'Points = {round_points + getTotalScore(dice_to_take)}')
+
+        action_choice = ''
+        while not (action_choice.upper() == 'X' or action_choice.upper() == 'R'):
+            action_choice = input('Enter R to reroll, or X to end turn: ')
+
+        if action_choice.upper() == 'X':
+            action = Action.ENDTURN
+        else:
+            action = Action.ROLL
+
+        return [dice_to_take, action]
+
+
 def playTurn(ptype, sleep_time=3, show_print=True):
     # This function plays one turn of Farkle. It sets up 6 dice, rolls them, and lets the player pick which dice to
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
@@ -224,11 +303,10 @@ def playTurn(ptype, sleep_time=3, show_print=True):
     did_bust = False
     first_roll = True
 
-    if ptype =='man':
+    if ptype == 'man':
         input('Press ENTER to roll the dice!')
 
     while True:
-        # TODO: Make this the first thing that happens in the loop & combine endTurnOrRoll() & chooseScoreToTake()
         # roll the dice & sort ascending (not needed but looks nice)
         dice = [random.randrange(1, 7) for d in range(num_dice)]
         dice.sort()
@@ -240,170 +318,33 @@ def playTurn(ptype, sleep_time=3, show_print=True):
         took_points = False
         end_turn = False
 
-        while not turn_is_over:
-            # Show the dice rolled
-            if show_print:
-                print(f'Dice remaining:\n{dice}')
+        # Show the dice rolled
+        if show_print:
+            print(f'Dice:\t{dice}\n')
 
-            # Get the list of scoring dice
-            scores = scoreDice(dice)
+        # Get the list of scoring dice
+        scores = scoreDice(dice)
 
-            # Determine if there's a BUST!
-            if len(scores) == 0:
-                if not took_points:
-                    if show_print:
-                        print(f'{Color.RED}\nBUST!\n{Color.RESET}')
-                    return 0
-                else:  # have already taken points from this roll, and there's no more scores to take
-                    turn_is_over = True
+        if len(scores) > 0:
+            printScore(scores)
 
-            # Otherwise points are able to be taken
+        # Get the list of dice the player chooses, and what they want to do with their turn
+        [scoring_dice, turn_action] = takeAction(ptype, dice, scores, round_score, sleep_time, show_print)
+
+        # Add points from scoring_dice to running total for the turn
+        round_score += getTotalScore(scoring_dice)
+
+        if turn_action == Action.ROLL:
+            # remove the scoring dice from the pool of dice remaining
+            num_dice -= len(scoring_dice)
+            if num_dice == 0:
+                num_dice = 6
+
+        elif turn_action == Action.ENDTURN:
+            if len(scoring_dice) == 0:
+                return 0  # BUST condition
             else:
-                if show_print:
-                    printScore(scores)  # print the available scores in a nice format
-
-                # case where there's only one option right off the roll, so user HAS to take it
-                if took_points is False and len(scores) == 1:
-                    if ptype == 'man':
-                        choice = ''
-                        while choice != '0':
-                            choice = input('Select \'0\' since it\'s the only score: ')
-                    choice = Action.S0
-                else:
-                    # case where there are multiple options for points
-                    choice = chooseScoreToTake(ptype, scores, round_score, took_points)
-
-
-
-                # Report what action the computer took, if needed
-                if not ptype == 'man' and show_print:
-                    if choice == Action.ENDTURN:
-                        print(f'{ptype} is taking no more points...')
-                    else:
-                        print(f'{ptype} is selecting {choice.value} for {scores[choice.value][0]} points')
-                    time.sleep(sleep_time)
-
-                if choice == Action.ENDTURN:
-                    turn_is_over = True
-                    end_turn = True
-
-                # Player has picked a scoring option
-                elif stringIsANumber(str(choice.value)):
-                    took_points = True
-                    score = scores[choice.value]  # get the score info from the choice selected
-                    # score = [number_of_points, [die_1, die_2, ..., die_N]]
-                    points = score[0]  # the number of points for that score
-                    die = score[1]  # the dice used to make those points\
-
-                    # take the scoring dice out of play
-                    for d in die:
-                        dice.remove(d)
-
-                    # Add the scoring points to the running round total
-                    round_score += points
-                    if show_print:
-                        print(f'Score = {round_score}')
-
-                elif choice == Action.ROLL:
-                    turn_is_over = True
-                    end_turn = False
-
-        # scoring turn is now over
-        # Check if the player wants to end their turn or roll the die
-        #end_turn = endTurnOrRoll(ptype, first_roll, round_score) == 'x'
-
-
-
-        if not ptype == 'man' and end_turn:
-            if show_print:
-                print(f'{ptype} is ending their turn...')
-            time.sleep(sleep_time)
-
-        # User chose to end the round
-        if end_turn:
-            return round_score
-
-        # User got NO points on their roll & busted
-        if did_bust:
-            return 0
-
-        else:
-            if len(dice) == 0:  # covers case where all dice are used for score, and player gets to roll again
-                num_dice = 6  # reset to using 6 dice
-            else:
-                num_dice = len(dice)  # only roll remaining dice
-
-        # TODO: Make this the first thing that happens in the loop & combine endTurnOrRoll() & chooseScoreToTake()
-        # roll the dice & sort ascending (not needed but looks nice)
-        # dice = [random.randrange(1, 7) for d in range(num_dice)]
-        # dice.sort()
-        #
-        # if show_print:
-        #     print('ROLLING THE DICE! ')
-        #
-        # turn_is_over = False
-        # took_points = False
-        #
-        # while not turn_is_over:
-            # # Show the dice rolled
-            # if show_print:
-            #     print(f'Dice remaining:\n{dice}')
-            #
-            # # Get the list of scoring dice
-            # scores = scoreDice(dice)
-            #
-            # # Determine if there's a BUST!
-            # if len(scores) == 0:
-            #     if not took_points:
-            #         if show_print:
-            #             print(f'{Color.RED}\nBUST!\n{Color.RESET}')
-            #         return 0
-            #     else:  # have already taken points from this roll, and there's no more scores to take
-            #         turn_is_over = True
-            #
-            # # Otherwise points are able to be taken
-            # else:
-            #     if show_print:
-            #         printScore(scores)  # print the available scores in a nice format
-            #
-            #     # case where there's only one option right off the roll, so user HAS to take it
-            #     if took_points is False and len(scores) == 1:
-            #         if ptype == 'man':
-            #             choice = ''
-            #             while choice != '0':
-            #                 choice = input('Select \'0\' since it\'s the only score: ')
-            #         choice = 0
-            #     else:
-            #         # case where there are multiple options for points
-            #         choice = chooseScoreToTake(ptype, scores, round_score, took_points)
-            #
-            #     # Report what action the computer took, if needed
-            #     if not ptype == 'man' and show_print:
-            #         if choice == 'x':
-            #             print(f'{ptype} is taking no more points...')
-            #         else:
-            #             print(f'{ptype} is selecting {choice} for {scores[choice][0]} points')
-            #         time.sleep(sleep_time)
-            #
-            #     if choice == 'x':
-            #         turn_is_over = True
-            #
-            #     # Player has picked a scoring option
-            #     else:
-            #         took_points = True
-            #         score = scores[int(choice)]  # get the score info from the choice selected
-            #         # score = [number_of_points, [die_1, die_2, ..., die_N]]
-            #         points = score[0]  # the number of points for that score
-            #         die = score[1]  # the dice used to make those points\
-            #
-            #         # take the scoring dice out of play
-            #         for d in die:
-            #             dice.remove(d)
-            #
-            #         # Add the scoring points to the running round total
-            #         round_score += points
-            #         if show_print:
-            #             print(f'Score = {round_score}')
+                return round_score
 
 
 class Player:
@@ -468,7 +409,7 @@ def main():
     print('Farkle!')
 
     default_score_thresh = 5000
-    default_num_games = 10
+    default_num_games = 1
 
     print('COMPUTER PLAYERS ARE')
     print('1. dumbAss (easy)')
@@ -482,9 +423,9 @@ def main():
     p2name = input('Enter name for PLAYER 2: ')
 
     if p1name == '':
-        p1name = 'highRolla'
+        p1name = 'PLAYER 1'
     if p2name == '':
-        p2name = 'dumbAss'
+        p2name = 'PLAYER 2'
 
     computer_names = ['dumbAss', 'highRolla', 'playItSafe']
 
