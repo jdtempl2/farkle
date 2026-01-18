@@ -2,9 +2,10 @@ import random
 import time
 import statistics
 from enum import Enum
+from itertools import combinations, zip_longest
 
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 class Color:
     RED = "\033[31m"
@@ -36,14 +37,87 @@ def stringIsANumber(s):
 
 
 def addScore(score_dict, points, dice):
-    score_dict[len(score_dict)] = [points, dice]
+    score_dict[printDice(dice)] = [points, dice]
     return score_dict
 
 
-def scoreDice(dice):
-    #  this function will take an arbitrary list of Dice values and return a Dictionary of possible scores
-    #  dict will take the form of 'scores[idx] = [points, [list_of_dice]]'
-    #  so a roll of [1, 1, 2, 5, 5, 6] will return {0: [100, [1]], 1: [200, [1, 1]], 2: [50, [5]], 3: [100, [5, 5]]}
+def getAllScoringDiceCombos(dice):
+    all_combos = []
+    for l in range(1, len(dice)+1):
+        combos = list(set(list(combinations(dice,l))))  # list(set( )) removes duplicates, but disorders the list
+        combos.sort()  # reorder the list
+        for combo in combos:
+            if canDiceScore(combo) and not list(combo) in all_combos:
+                all_combos.append(list(combo))
+    return all_combos
+
+
+def canDiceScore(dice):
+    # Returns True iff the ENTIRE array of die are scoring
+    # [1, 1, 5] ==> TRUE
+    # [1, 1, 5, 6] ==> FALSE
+
+    num_dice = len(dice)
+    if num_dice == 0:
+        return False
+
+    if num_dice == 1:
+        if dice[0] == 1 or dice[0] == 5:
+            return True
+        return False
+
+    elif num_dice == 2:
+        two_die_scores = [(1,1), (1,5), (5,5)]
+        two_die = (dice[0], dice[1])
+        if two_die in two_die_scores:
+            return True
+        return False
+
+    elif num_dice == 3:
+        three_die_scores = [(1,1,5), (1,5,5)]  # omit triples b/c we check for that already
+        three_die = (dice[0], dice[1], dice[2])
+        if dice[0] == dice[1] == dice[2]:
+            return True
+        elif three_die in three_die_scores:
+            return True
+        return False
+
+    elif num_dice == 4:
+        (d1, d2, d3, d4) = (dice[0], dice[1], dice[2], dice[3])
+        if d1 == d2 == d3 == d4:
+            return True
+        elif (canDiceScore([d1,d2,d3]) and d4 == 5) or ((d1 == 1 or d1 == 5) and canDiceScore([d2,d3,d4])):
+            return True
+        return False
+
+    elif num_dice == 5:
+        (d1, d2, d3, d4, d5) = (dice[0], dice[1], dice[2], dice[3], dice[4])
+        five_die = (d1, d2, d3, d4, d5)
+        if five_die == (1,2,3,4,5) or five_die == (2,3,4,5,6):
+            return True
+        elif d1 == d2 == d3 == d4 == d5:
+            return True
+        elif (canDiceScore([d1,d2,d3,d4]) and d5 == 5) or ((d1 == 1 or d1 == 5) and canDiceScore([d2,d3,d4,d5])):
+            return True
+        return False
+
+    else:
+        six_die_scores = [(1, 2, 3, 4, 5, 6), (2, 3, 4, 5, 5, 6)]
+        (d1, d2, d3, d4, d5, d6) = (dice[0], dice[1], dice[2], dice[3], dice[4], dice[5])
+        six_die = (d1, d2, d3, d4, d5, d6)
+        if six_die in six_die_scores:
+            return True
+        # six of a kind OR two three of a kinds
+        elif (d1 == d2 == d3 == d4 == d5 == d6) or (d1 == d2 == d3 and d4 == d5 == d6):
+            return True
+        # 5 of a kind AND a 1 or 5
+        elif (canDiceScore([d1,d2,d3,d4,d5]) and d6 == 5) or ((d1 == 1 or d1 == 5) and canDiceScore([d2,d3,d4,d5,d6])):
+            return True
+        return False
+
+
+def getHighestDiceScore(dice):
+    #  this function will take an arbitrary list of Dice values and return ??
 
     num_dice = len(dice)
     values = [0, 0, 0, 0, 0, 0]  # number of ones, twos, threes, etc
@@ -108,7 +182,10 @@ def scoreDice(dice):
             if val == 6:
                 addScore(scores, d*800, [d, d, d, d, d, d])
 
-    return scores
+    if len(scores) == 0:
+        return []
+    else:
+        return max(scores.values())
 
 
 def isDiceSelectionValid(chosen_dice, original_dice):
@@ -127,35 +204,34 @@ def getTotalScore(scoring_dice):
     dice = [d for d in scoring_dice]  # save local copy to not overwrite original List
     points = 0
     while len(dice) > 0:
-        scores = scoreDice(dice)
-        if len(scores) == 0:
+        highest_score = getHighestDiceScore(dice)
+        if len(highest_score) == 0:
             return points
-        [points_to_add, scoring_dice] = max(scores.values())
+        [points_to_add, scoring_dice] = highest_score
         points += points_to_add
         for d in scoring_dice:
             dice.remove(d)
     return points
 
 
-def printScore(scores):
+def printCombos(combos):
     # function to nicely print the dictionary of scores returned by scoreDice
     # Choice    Score   Dice Used
     # 1         100     [1]
     # 11        200     [1, 1]
     # 5         50      [5]
     s = 'Choice\tScore\tDice Used\n'
-    for x in scores:
+    for dice in combos:
+        points = getTotalScore(dice)
+        choice = printDice(dice)
         tabs1 = '\t\t'
         tabs2 = '\t\t'
-
-        points = scores[x][0]
-        dice = scores[x][1]
-        choice = printDice(dice)
         if len(choice) > 3:
             tabs1 = '\t'
         if points > 999:
             tabs2 = '\t'
         s += f'{choice}{tabs1}{points}{tabs2}{dice}\n'
+
     print(s)
 
 
@@ -168,81 +244,16 @@ def printDice(dice):
     return dice_str
 
 
-def endTurnOrRoll(ptype, first_roll, round_score):
-    # Will return an empty string to indicate ROLL, or 'x' to indicate END TURN
-    # Human players will simply use an input()
-    # Computer players will have more rules
-    #   ptype       - player type (human or otherwise)
-    #   first_roll  - bool of whether it's the very first roll in a turn or not
-
-    choice = 'x'
-
-    if first_roll:
-        choice = ''
-
-    elif ptype == 'man':
-        # if first_roll:
-        #     input('Press ENTER to roll die: ')
-        # else:
-        # Player can choose to end their turn after they roll
-        return input('Press ENTER to roll die, or \'x\' to end turn: ')
-
-    elif ptype =='dumbAss':
-        # dumbAss always quits after the first roll...
-        if not first_roll:
-            choice = 'x'
-
-    # highRolla will always roll until he either busts or has some high number of points (1000+)
-    elif ptype == 'highRolla':
-        points_to_get = 1000  # amount of points that highRolla wants in one round
-        if round_score >= points_to_get:
-            choice = 'x'
-        else:
-            choice = ''
-
-    return choice
-
-
 def getHighestScoringOption(scores):
-    point_vals = [scores[s][0] for s in scores]  # get List of points from the score dict
-    highest_point_val = max(point_vals)
-    choice = 0  # initialize
+    highest_score = 0
+    dice = []
 
-    # probably not the most elegant way to do this...
-    # find the score[] index that matches the highest point val
-    for s in scores:
-        if highest_point_val in scores[s]:
-            choice = s
-    return choice
+    for score in scores:
+        if score[1] > highest_score:
+            highest_score = score[1]
+            dice = score[0]
 
-
-def chooseScoreToTake(ptype, scores, round_score, took_points):
-    # will return an Action (defined above)
-
-    # Human player gets to pick what option to take
-    if ptype == 'man':
-        choice = ''
-        while not (stringIsAnAction(choice)):
-            choice = input('Select one score to take, press \'r\' to reroll, or press \'x\' to end turn: ')
-            if stringIsANumber(choice):
-                choice = int(choice)
-        return Action(choice)
-
-    # dumbAss will take the highest available score ONCE, then cede their turn
-    elif ptype == 'dumbAss':
-        if took_points is False:
-            return Action(getHighestScoringOption(scores))
-        else:
-            return Action.ENDTURN
-
-    # highRolla will always roll until he either busts or has some high number of points (1000+)
-    elif ptype == 'highRolla':
-        if len(scores) > 0:
-            return Action(getHighestScoringOption(scores))
-        else:
-            return Action.ENDTURN
-
-    return Action.S0
+    return dice
 
 
 def takeAction(ptype, dice, scores, round_points, sleep_time, show_print=False):
@@ -261,7 +272,7 @@ def takeAction(ptype, dice, scores, round_points, sleep_time, show_print=False):
             return [dice_to_take, Action.ENDTURN]
 
         if len(scores) == 1:
-            dice_to_take = scores[0][1]
+            dice_to_take = scores[0][0]
             input(f'Choosing {printDice(dice_to_take)}, since it\'s the only scoring option')
         else:
             dice_to_take = [7]
@@ -290,6 +301,41 @@ def takeAction(ptype, dice, scores, round_points, sleep_time, show_print=False):
         return [dice_to_take, action]
 
 
+    dice_to_take = []
+    action = Action.ENDTURN
+
+    # check for BUST
+    if len(scores) == 0:
+        if show_print:
+            print(f'BUST! Ending {ptype}\'s turn...')
+            time.sleep(sleep_time)
+        return [dice_to_take, Action.ENDTURN]
+
+    if ptype == 'dumbAss':
+        dice_to_take = getHighestScoringOption(scores)
+        points_to_take = getTotalScore(dice_to_take)
+        dice_choice = printDice(dice_to_take)
+        if show_print:
+            print(f'{ptype} is choosing {dice_choice} for {points_to_take} points')
+            time.sleep(sleep_time)
+
+        dice_left = len(dice) - len(dice_to_take)
+        if dice_left == 1:
+            print(f'{dice_left} die remaining')
+        else:
+            print(f'{dice_left} dice remaining')
+
+        print(f'Points = {round_points + points_to_take}')
+
+        action_choice = Action.ENDTURN  # dumbAss ALWAYS ends his turn after taking points
+        if show_print:
+            print(f'{ptype} is ending his turn...')
+            time.sleep(sleep_time)
+
+        return [dice_to_take, action_choice]
+
+
+
 def playTurn(ptype, sleep_time=3, show_print=True):
     # This function plays one turn of Farkle. It sets up 6 dice, rolls them, and lets the player pick which dice to
     # use for scoring. Then the remaining dice can be rerolled. If there's a bust, the turn ends with 0 points scored.
@@ -314,19 +360,17 @@ def playTurn(ptype, sleep_time=3, show_print=True):
         if show_print:
             print('ROLLING THE DICE! ')
 
-        turn_is_over = False
-        took_points = False
-        end_turn = False
-
         # Show the dice rolled
         if show_print:
             print(f'Dice:\t{dice}\n')
 
         # Get the list of scoring dice
-        scores = scoreDice(dice)
+        scoring_combos = getAllScoringDiceCombos(dice)
+        scoring_combo_points = [getTotalScore(combo) for combo in scoring_combos]
+        scores = list(zip_longest(scoring_combos, scoring_combo_points))
 
-        if len(scores) > 0:
-            printScore(scores)
+        if len(scoring_combos) > 0:
+            printCombos(scoring_combos)
 
         # Get the list of dice the player chooses, and what they want to do with their turn
         [scoring_dice, turn_action] = takeAction(ptype, dice, scores, round_score, sleep_time, show_print)
