@@ -2,7 +2,7 @@ import random
 import time
 import statistics
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 
 def stringIsANumber(s):
@@ -230,6 +230,7 @@ def playTurn(ptype, sleep_time=3, show_print=True):
 
         if show_print:
             print('ROLLING THE DICE! ')
+            time.sleep(2)
 
         turn_is_over = False
         took_points = False
@@ -238,6 +239,7 @@ def playTurn(ptype, sleep_time=3, show_print=True):
             # Show the dice rolled
             if show_print:
                 print(f'Dice remaining:\n{dice}')
+                time.sleep(2)
 
             # Get the list of scoring dice
             scores = scoreDice(dice)
@@ -294,6 +296,7 @@ def playTurn(ptype, sleep_time=3, show_print=True):
                     round_score += points
                     if show_print:
                         print(f'Score = {round_score}')
+                        time.sleep(2)
 
 
 class Player:
@@ -322,6 +325,7 @@ def playGame(p1, p2, score_to_win):
         while True:
             if player_1s_turn:
                 print(f'{Color.GREEN}{p1.name}\'s Turn{Color.RESET}')
+                time.sleep(2)
                 p1.points += playTurn(p1.type, turn_delay, show_print)
                 print(f'{Color.GREEN}{p1.name} SCORE = {p1.points}{Color.RESET}')
                 print(f'{Color.BLUE}{p2.name} SCORE = {p2.points}{Color.RESET}')
@@ -331,6 +335,7 @@ def playGame(p1, p2, score_to_win):
                     return p1.name
             else:
                 print(f'{Color.BLUE}{p2.name}\'s Turn{Color.RESET}')
+                time.sleep(2)
                 p2.points += playTurn(p2.type, turn_delay, show_print)
                 print(f'{Color.BLUE}{p2.name} SCORE = {p2.points}{Color.RESET}')
                 print(f'{Color.GREEN}{p1.name} SCORE = {p1.points}{Color.RESET}')
